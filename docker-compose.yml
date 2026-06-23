@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: shipment-postgres
+    environment:
+      POSTGRES_DB: shipment_tracking
+      POSTGRES_USER: shipment_user
+      POSTGRES_PASSWORD: shipment_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - shipment_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  shipment_postgres_data:
