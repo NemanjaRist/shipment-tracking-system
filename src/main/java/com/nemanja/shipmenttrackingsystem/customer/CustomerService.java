@@ -74,4 +74,23 @@ public class CustomerService {
                 customer.getUpdatedAt()
         );
     }
+
+    public Customer findOrCreateCustomer(
+            String firstName,
+            String lastName,
+            String email,
+            String phone
+    ) {
+        return customerRepository.findByEmail(email)
+                .orElseGet(() -> {
+                    Customer customer = Customer.builder()
+                            .firstName(firstName)
+                            .lastName(lastName)
+                            .email(email)
+                            .phone(phone)
+                            .build();
+
+                    return customerRepository.save(customer);
+                });
+    }
 }

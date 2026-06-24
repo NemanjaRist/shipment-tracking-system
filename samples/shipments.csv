@@ -1,0 +1,6 @@
+customerFirstName,customerLastName,customerEmail,customerPhone,contentDescription,note
+Marko,Markovic,marko@example.com,+38160111222,Mobile phone and charger,Imported from CSV
+Jovana,Jovanovic,jovana@example.com,+38160111333,Books and documents,Imported from CSV
+Petar,Petrovic,petar@example.com,+38160111444,Laptop bag,Imported from CSV
+Invalid,User,,+38160111555,Package without email,This row should fail
+Ana,Anic,ana@example.com,+38160111666,Clothes,Imported from CSV

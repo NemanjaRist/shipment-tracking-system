@@ -167,6 +167,28 @@ public class ShipmentService {
         }
     }
 
+    public Shipment createShipmentFromImport(Customer customer, String contentDescription, String note) {
+        Shipment shipment = Shipment.builder()
+                .trackingNumber(generateTrackingNumber())
+                .contentDescription(contentDescription)
+                .status(ShipmentStatus.CREATED)
+                .customer(customer)
+                .build();
+
+        Shipment savedShipment = shipmentRepository.save(shipment);
+
+        ShipmentStatusHistory history = ShipmentStatusHistory.builder()
+                .shipment(savedShipment)
+                .status(ShipmentStatus.CREATED)
+                .changedAt(LocalDateTime.now())
+                .note(note == null ? "Shipment imported" : note)
+                .build();
+
+        statusHistoryRepository.save(history);
+
+        return savedShipment;
+    }
+
     private String generateTrackingNumber() {
         String trackingNumber;
 
