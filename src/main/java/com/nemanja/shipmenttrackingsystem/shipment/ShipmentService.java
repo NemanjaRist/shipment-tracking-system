@@ -14,7 +14,12 @@ import org.springframework.transaction.annotation.Transactional;
 import com.nemanja.shipmenttrackingsystem.common.exception.InvalidStatusTransitionException;
 import com.nemanja.shipmenttrackingsystem.shipment.dto.UpdateShipmentStatusRequest;
 import com.nemanja.shipmenttrackingsystem.tracking.dto.ShipmentStatusHistoryResponse;
+import com.nemanja.shipmenttrackingsystem.common.response.PageResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
+import java.time.LocalDate;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
@@ -62,11 +67,35 @@ public class ShipmentService {
     }
 
     @Transactional(readOnly = true)
-    public List<ShipmentResponse> getAllShipments() {
-        return shipmentRepository.findAll()
+    public PageResponse<ShipmentResponse> getShipments(
+            Long customerId,
+            ShipmentStatus status,
+            LocalDate createdFrom,
+            LocalDate createdTo,
+            Pageable pageable
+    ) {
+        Specification<Shipment> specification = Specification.allOf(
+                ShipmentSpecification.hasCustomerId(customerId),
+                ShipmentSpecification.hasStatus(status),
+                ShipmentSpecification.createdFrom(createdFrom),
+                ShipmentSpecification.createdTo(createdTo)
+        );
+
+        Page<Shipment> shipmentPage = shipmentRepository.findAll(specification, pageable);
+
+        List<ShipmentResponse> content = shipmentPage.getContent()
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
+
+        return new PageResponse<>(
+                content,
+                shipmentPage.getNumber(),
+                shipmentPage.getSize(),
+                shipmentPage.getTotalElements(),
+                shipmentPage.getTotalPages(),
+                shipmentPage.isLast()
+        );
     }
 
     @Transactional(readOnly = true)

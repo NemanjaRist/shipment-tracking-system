@@ -6,9 +6,16 @@ import com.nemanja.shipmenttrackingsystem.shipment.dto.CreateShipmentRequest;
 import com.nemanja.shipmenttrackingsystem.shipment.dto.ShipmentResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import com.nemanja.shipmenttrackingsystem.common.response.PageResponse;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -25,8 +32,15 @@ public class ShipmentController {
     }
 
     @GetMapping
-    public List<ShipmentResponse> getAllShipments() {
-        return shipmentService.getAllShipments();
+    public PageResponse<ShipmentResponse> getShipments(
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) ShipmentStatus status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate createdFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate createdTo,
+            @ParameterObject
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return shipmentService.getShipments(customerId, status, createdFrom, createdTo, pageable);
     }
 
     @GetMapping("/{id}")
