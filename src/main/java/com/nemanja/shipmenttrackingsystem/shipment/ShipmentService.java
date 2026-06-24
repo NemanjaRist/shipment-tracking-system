@@ -11,7 +11,13 @@ import com.nemanja.shipmenttrackingsystem.tracking.ShipmentStatusHistoryReposito
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.nemanja.shipmenttrackingsystem.common.exception.InvalidStatusTransitionException;
+import com.nemanja.shipmenttrackingsystem.shipment.dto.UpdateShipmentStatusRequest;
+import com.nemanja.shipmenttrackingsystem.tracking.dto.ShipmentStatusHistoryResponse;
 
+import java.util.EnumSet;
+import java.util.Map;
+import java.util.Set;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -24,6 +30,12 @@ public class ShipmentService {
     private final ShipmentRepository shipmentRepository;
     private final ShipmentStatusHistoryRepository statusHistoryRepository;
     private final CustomerService customerService;
+    private static final Map<ShipmentStatus, Set<ShipmentStatus>> ALLOWED_STATUS_TRANSITIONS = Map.of(
+            ShipmentStatus.CREATED, EnumSet.of(ShipmentStatus.IN_TRANSIT, ShipmentStatus.CANCELLED),
+            ShipmentStatus.IN_TRANSIT, EnumSet.of(ShipmentStatus.DELIVERED, ShipmentStatus.CANCELLED),
+            ShipmentStatus.DELIVERED, EnumSet.noneOf(ShipmentStatus.class),
+            ShipmentStatus.CANCELLED, EnumSet.noneOf(ShipmentStatus.class)
+    );
 
     public ShipmentResponse createShipment(CreateShipmentRequest request) {
         Customer customer = customerService.findCustomerById(request.customerId());
@@ -79,6 +91,53 @@ public class ShipmentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Shipment not found with id: " + id));
     }
 
+    public ShipmentResponse updateShipmentStatus(Long id, UpdateShipmentStatusRequest request) {
+        Shipment shipment = findShipmentById(id);
+
+        validateStatusTransition(shipment.getStatus(), request.status());
+
+        shipment.setStatus(request.status());
+
+        Shipment savedShipment = shipmentRepository.save(shipment);
+
+        ShipmentStatusHistory history = ShipmentStatusHistory.builder()
+                .shipment(savedShipment)
+                .status(request.status())
+                .changedAt(LocalDateTime.now())
+                .note(request.note())
+                .build();
+
+        statusHistoryRepository.save(history);
+
+        return mapToResponse(savedShipment);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ShipmentStatusHistoryResponse> getShipmentStatusHistory(Long shipmentId) {
+        findShipmentById(shipmentId);
+
+        return statusHistoryRepository.findByShipmentIdOrderByChangedAtAsc(shipmentId)
+                .stream()
+                .map(this::mapHistoryToResponse)
+                .toList();
+    }
+
+    private void validateStatusTransition(ShipmentStatus currentStatus, ShipmentStatus newStatus) {
+        if (currentStatus == newStatus) {
+            throw new InvalidStatusTransitionException(
+                    "Shipment already has status: " + currentStatus
+            );
+        }
+
+        Set<ShipmentStatus> allowedStatuses = ALLOWED_STATUS_TRANSITIONS.get(currentStatus);
+
+        if (allowedStatuses == null || !allowedStatuses.contains(newStatus)) {
+            throw new InvalidStatusTransitionException(
+                    "Invalid status transition from " + currentStatus + " to " + newStatus
+            );
+        }
+    }
+
     private String generateTrackingNumber() {
         String trackingNumber;
 
@@ -110,6 +169,15 @@ public class ShipmentService {
                 customerResponse,
                 shipment.getCreatedAt(),
                 shipment.getUpdatedAt()
+        );
+    }
+
+    private ShipmentStatusHistoryResponse mapHistoryToResponse(ShipmentStatusHistory history) {
+        return new ShipmentStatusHistoryResponse(
+                history.getId(),
+                history.getStatus(),
+                history.getChangedAt(),
+                history.getNote()
         );
     }
 }

@@ -1,5 +1,7 @@
 package com.nemanja.shipmenttrackingsystem.shipment;
 
+import com.nemanja.shipmenttrackingsystem.shipment.dto.UpdateShipmentStatusRequest;
+import com.nemanja.shipmenttrackingsystem.tracking.dto.ShipmentStatusHistoryResponse;
 import com.nemanja.shipmenttrackingsystem.shipment.dto.CreateShipmentRequest;
 import com.nemanja.shipmenttrackingsystem.shipment.dto.ShipmentResponse;
 import jakarta.validation.Valid;
@@ -35,5 +37,18 @@ public class ShipmentController {
     @GetMapping("/tracking/{trackingNumber}")
     public ShipmentResponse getShipmentByTrackingNumber(@PathVariable String trackingNumber) {
         return shipmentService.getShipmentByTrackingNumber(trackingNumber);
+    }
+
+    @GetMapping("/{id}/history")
+    public List<ShipmentStatusHistoryResponse> getShipmentStatusHistory(@PathVariable Long id) {
+        return shipmentService.getShipmentStatusHistory(id);
+    }
+
+    @PatchMapping("/{id}/status")
+    public ShipmentResponse updateShipmentStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateShipmentStatusRequest request
+    ) {
+        return shipmentService.updateShipmentStatus(id, request);
     }
 }
